@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.venv/
+venv/
+
+# Flutter / Android
+mobile/.dart_tool/
+mobile/build/
+mobile/.flutter-plugins*
+mobile/android/.gradle/
+mobile/android/local.properties
+mobile/android/app/.cxx/
+*.keystore
+key.properties
+
+# Sistema
+.DS_Store
+
+# Artefactos de build publicados como release
+GeoRecon-plus.apk
