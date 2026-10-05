@@ -8,7 +8,7 @@ geo-recon-plus/
 ├── georecon/          # paquete Python (CLI)
 ├── tests/             # 84 tests pytest, sin red
 ├── mobile/            # app Flutter (APK Android)
-│   └── build/app/outputs/flutter-apk/app-release.apk
+│   └── build/app/outputs/flutter-apk/   # un APK por arquitectura
 ├── tools/             # generador del icono de launcher
 └── pyproject.toml
 ```
@@ -117,12 +117,17 @@ cd mobile
 flutter pub get
 flutter analyze
 flutter test
-flutter build apk --release
-# salida: mobile/build/app/outputs/flutter-apk/app-release.apk
+flutter build apk --release --split-per-abi
+# salidas en mobile/build/app/outputs/flutter-apk/:
+#   app-arm64-v8a-release.apk     8,2 MB  (casi todos los móviles actuales)
+#   app-armeabi-v7a-release.apk   7,7 MB  (32 bits)
+#   app-x86_64-release.apk        8,3 MB  (emuladores / Intel)
+# sin --split-per-abi sale un APK único con las tres arquitecturas (22 MB)
 ```
 
-El APK se instala directamente en Android (minSdk 24 / Android 7.0+). Incluye permiso
-`INTERNET`.
+El APK se instala directamente en Android (minSdk 24 / Android 7.0+) e incluye permiso
+`INTERNET`. Las librerías nativas van comprimidas dentro del paquete
+(`packaging.jniLibs.useLegacyPackaging`), lo que deja cada APK en ~8 MB en vez de ~17 MB.
 
 Funciones:
 
