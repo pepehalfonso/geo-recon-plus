@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import ipaddress
 from dataclasses import asdict, dataclass, field
-from typing import Any, Optional
+from typing import Any
 
 from georecon.errors import InvalidTargetError
 
@@ -33,15 +33,15 @@ def parse_target(raw: str) -> ipaddress.IPv4Address | ipaddress.IPv6Address:
 
 @dataclass
 class GeoInfo:
-    country: Optional[str] = None
-    country_code: Optional[str] = None
-    region: Optional[str] = None
-    city: Optional[str] = None
-    latitude: Optional[float] = None
-    longitude: Optional[float] = None
-    timezone: Optional[str] = None
-    postal: Optional[str] = None
-    flag: Optional[str] = None
+    country: str | None = None
+    country_code: str | None = None
+    region: str | None = None
+    city: str | None = None
+    latitude: float | None = None
+    longitude: float | None = None
+    timezone: str | None = None
+    postal: str | None = None
+    flag: str | None = None
 
     @property
     def place(self) -> str:
@@ -51,10 +51,10 @@ class GeoInfo:
 
 @dataclass
 class ConnectionInfo:
-    asn: Optional[int] = None
-    org: Optional[str] = None
-    isp: Optional[str] = None
-    domain: Optional[str] = None
+    asn: int | None = None
+    org: str | None = None
+    isp: str | None = None
+    domain: str | None = None
 
     @property
     def asn_label(self) -> str:
@@ -64,12 +64,15 @@ class ConnectionInfo:
 @dataclass
 class Reputation:
     source: str = "none"
-    score: Optional[int] = None
-    reports: Optional[int] = None
-    last_reported: Optional[str] = None
-    whitelisted: Optional[bool] = None
+    score: int | None = None
+    reports: int | None = None
+    last_reported: str | None = None
+    whitelisted: bool | None = None
     verdict: str = "unknown"
     notes: list[str] = field(default_factory=list)
+
+
+SCHEMA_VERSION = 2
 
 
 @dataclass
@@ -80,8 +83,9 @@ class LookupResult:
     connection: ConnectionInfo = field(default_factory=ConnectionInfo)
     reputation: Reputation = field(default_factory=Reputation)
     is_private: bool = False
-    hostname: Optional[str] = None
+    hostname: str | None = None
     provider: str = "ipwho.is"
+    target: str | None = None
     warnings: list[str] = field(default_factory=list)
 
     @property
@@ -89,7 +93,9 @@ class LookupResult:
         return not self.is_private
 
     def to_dict(self) -> dict[str, Any]:
-        return asdict(self)
+        payload = asdict(self)
+        payload["schema_version"] = SCHEMA_VERSION
+        return payload
 
 
 _IPV4_SPECIAL_NETWORKS = (
@@ -101,7 +107,7 @@ _IPV4_SPECIAL_NETWORKS = (
 )
 
 
-def scope_of(address: ipaddress.IPv4Address | ipaddress.IPv6Address) -> Optional[str]:
+def scope_of(address: ipaddress.IPv4Address | ipaddress.IPv6Address) -> str | None:
     """Return a human label for non-public addresses, else None."""
     if address.is_loopback:
         return "loopback"

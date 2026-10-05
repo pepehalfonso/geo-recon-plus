@@ -1,8 +1,6 @@
-import json
-from typing import Any, Optional
+from typing import Any
 
 import pytest
-
 from georecon.lookup import Lookup
 
 IPWHOIS_OK = {
@@ -28,14 +26,18 @@ ABUSE_ERROR = {"errors": [{"detail": "The provided API key is invalid."}]}
 
 
 class FakeGet:
-    """Stands in for georecon.http.build_getter. First matching route wins."""
+    """Stands in for georecon.http.build_getter. First matching route wins.
 
-    def __init__(self, routes: Optional[dict] = None, default: Any = None):
+    A route value of ``{"error": "..."}`` raises NetworkError, which is how
+    tests simulate an unreachable provider.
+    """
+
+    def __init__(self, routes: dict | None = None, default: Any = None):
         self.routes = routes or {}
         self.default = default
         self.calls: list[dict] = []
 
-    def __call__(self, url: str, *, params: Optional[dict] = None, timeout: float = 0, headers=None, **kwargs):
+    def __call__(self, url: str, *, params: dict | None = None, timeout: float = 0, headers=None, **kwargs):
         self.calls.append({"url": url, "params": params or {}, "headers": headers or {}})
         for pattern, payload in self.routes.items():
             if pattern in url or (params and pattern in str(params.get("name", ""))):

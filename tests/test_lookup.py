@@ -1,4 +1,5 @@
 from georecon.lookup import Lookup
+
 from tests.conftest import ABUSE_BAD, IPWHOIS_OK, FakeGet
 
 

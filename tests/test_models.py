@@ -1,7 +1,6 @@
 import ipaddress
 
 import pytest
-
 from georecon.errors import InvalidTargetError
 from georecon.models import GeoInfo, parse_target, scope_of
 
@@ -47,3 +46,20 @@ def test_geo_place_joins_available_parts():
     geo = GeoInfo(city="Rome", region="Lazio", country="Italy")
     assert geo.place == "Rome, Lazio, Italy"
     assert GeoInfo().place == "unknown"
+
+
+def test_lookup_result_serialises_with_schema_version():
+    from georecon.models import LookupResult
+
+    payload = LookupResult(ip="8.8.8.8").to_dict()
+    assert payload["schema_version"] == 2
+    assert payload["ip"] == "8.8.8.8"
+    assert payload["target"] is None
+    assert set(payload) >= {"geo", "connection", "reputation", "warnings"}
+
+
+def test_lookup_result_keeps_the_original_target():
+    from georecon.models import LookupResult
+
+    payload = LookupResult(ip="93.184.216.34", target="example.com").to_dict()
+    assert payload["target"] == "example.com"

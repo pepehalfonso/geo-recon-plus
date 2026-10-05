@@ -35,6 +35,22 @@ void main() {
     );
   });
 
+  test('resolves a hostname before running the lookup', () async {
+    final result = await api.lookup('one.one.one.one');
+
+    expect(result.resolvedFrom, 'one.one.one.one');
+    expect(result.ip, '1.0.0.1');
+    expect(result.isPrivate, isFalse);
+    expect(result.geo.country, isNotNull);
+  }, timeout: const Timeout(Duration(seconds: 60)));
+
+  test('reports unresolvable hosts as a lookup error', () async {
+    await expectLater(
+      api.lookup('does-not-exist.invalid'),
+      throwsA(isA<LookupException>().having((e) => e.message, 'message', contains('Could not resolve'))),
+    );
+  }, timeout: const Timeout(Duration(seconds: 60)));
+
   test('skips geolocation for private addresses', () async {
     final result = await api.lookup('192.168.1.4');
 

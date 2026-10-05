@@ -7,7 +7,7 @@ makes the whole package testable without touching the network.
 from __future__ import annotations
 
 import ipaddress
-from typing import Any, Optional
+from typing import Any
 
 from georecon.errors import NetworkError, ProviderError
 from georecon.http import Getter
@@ -22,6 +22,7 @@ DOH_URL = "https://dns.google/resolve"
 DNSBL_ZONES = (
     "zen.spamhaus.org",
     "bl.spamcop.net",
+    "psbl.surbl.org",
     "b.barracudacentral.org",
 )
 
@@ -73,7 +74,7 @@ def detect_own_ip(get: Getter) -> str:
     raise ProviderError("could not determine the public IP address")
 
 
-def reverse_dns(ip: str, get: Getter) -> Optional[str]:
+def reverse_dns(ip: str, get: Getter) -> str | None:
     """Resolve the PTR record for *ip* through DNS-over-HTTPS."""
     name = _ptr_name(ip)
     if name is None:
@@ -91,7 +92,7 @@ def reverse_dns(ip: str, get: Getter) -> Optional[str]:
     return None
 
 
-def _ptr_name(ip: str) -> Optional[str]:
+def _ptr_name(ip: str) -> str | None:
     try:
         address = ipaddress.ip_address(ip)
     except ValueError:
@@ -135,7 +136,12 @@ def abuseipdb_lookup(ip: str, key: str, get: Getter) -> Reputation:
 
 
 def dnsbl_lookup(ip: str, get: Getter, zones: tuple[str, ...] = DNSBL_ZONES) -> Reputation:
-    """Keyless reputation probe: reverse the IP and ask public DNS blocklists."""
+    """Keyless reputation probe: reverse the IP and ask public DNS blocklists.
+
+    Answers in the 127.255.255.0/24 range mean the zone refused our query
+    (public resolvers are rate limited); they are reported as unavailable
+    instead of being counted as a listing, which would be a false positive.
+    """
     if ":" in ip:
         # DNSBLs are IPv4-only; IPv6 has no reverse zone in these lists.
         return Reputation(source="dnsbl", verdict="unknown", notes=["DNSBL lists are IPv4-only"])
@@ -147,32 +153,46 @@ def dnsbl_lookup(ip: str, get: Getter, zones: tuple[str, ...] = DNSBL_ZONES) -> 
 
     listed: list[str] = []
     checked: list[str] = []
+    refused: list[str] = []
     for zone in zones:
         try:
             body = get(DOH_URL, params={"name": f"{reversed_ip}.{zone}", "type": "A"})
         except Exception:
             continue
-        checked.append(zone)
         if not isinstance(body, dict):
             continue
-        if body.get("Status") == 0:
-            answers = body.get("Answer") or []
-            for answer in answers:
-                data = str(answer.get("data", ""))
-                if data.startswith("127."):
-                    listed.append(f"{zone} ({data})")
-                    break
+        status = body.get("Status")
+        if status not in (0, 3):
+            continue
+        checked.append(zone)
+        if status != 0:
+            continue
+        for answer in body.get("Answer") or []:
+            data = str(answer.get("data", ""))
+            if data.startswith("127.255.255."):
+                refused.append(zone)
+                checked.pop()
+                break
+            if data.startswith("127."):
+                listed.append(f"{zone} ({data})")
+                break
 
-    if not checked:
+    if not checked and not refused:
         return Reputation(source="dnsbl", verdict="unknown", notes=["no blocklist reachable"])
 
     reputation = Reputation(source="dnsbl", verdict="clean")
-    reputation.notes.append(f"checked {len(checked)} DNS blocklists")
+    if checked:
+        reputation.notes.append(f"checked {len(checked)} DNS blocklists")
+    if refused:
+        reputation.notes.append(f"refused by {', '.join(refused)} (query rate limited)")
     if listed:
         reputation.verdict = "suspicious"
         reputation.notes.extend(f"listed on {entry}" for entry in listed)
-    else:
+    elif checked:
         reputation.notes.append("not listed on any checked blocklist")
+    else:
+        reputation.verdict = "unknown"
+        reputation.notes.append("every blocklist refused the query")
     return reputation
 
 
@@ -190,7 +210,7 @@ def merge_reputation(primary: Reputation, extra: Reputation) -> Reputation:
     return primary
 
 
-def _verdict_from_score(score: Optional[int]) -> str:
+def _verdict_from_score(score: int | None) -> str:
     if score is None:
         return "unknown"
     if score >= 75:
@@ -200,21 +220,21 @@ def _verdict_from_score(score: Optional[int]) -> str:
     return "clean"
 
 
-def _number(value: Any) -> Optional[float]:
+def _number(value: Any) -> float | None:
     try:
         return float(value)
     except (TypeError, ValueError):
         return None
 
 
-def _integer(value: Any) -> Optional[int]:
+def _integer(value: Any) -> int | None:
     try:
         return int(value)
     except (TypeError, ValueError):
         return None
 
 
-def _flag(country_code: Any) -> Optional[str]:
+def _flag(country_code: Any) -> str | None:
     if not isinstance(country_code, str) or len(country_code) != 2:
         return None
     return "".join(chr(0x1F1E6 + ord(char) - ord("A")) for char in country_code.upper())

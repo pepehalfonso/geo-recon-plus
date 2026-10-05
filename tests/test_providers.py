@@ -1,8 +1,8 @@
 import pytest
-
 from georecon import providers
 from georecon.errors import ProviderError
 from georecon.models import ConnectionInfo, Reputation
+
 from tests.conftest import ABUSE_BAD, ABUSE_CLEAN, ABUSE_ERROR, IPWHOIS_FAIL, IPWHOIS_OK, FakeGet
 
 
@@ -64,6 +64,29 @@ def test_dnsbl_survives_unreachable_blocklists():
     rep = providers.dnsbl_lookup("8.8.8.8", get)
     assert rep.verdict == "unknown"
     assert any("no blocklist reachable" in note for note in rep.notes)
+
+
+def test_dnsbl_treats_rate_limit_answers_as_refused_not_listed():
+    blocked = {"Status": 0, "Answer": [{"data": "127.255.255.254", "type": 1}]}
+    rep = providers.dnsbl_lookup("8.8.8.8", FakeGet({"dns.google/resolve": blocked}))
+    assert rep.verdict == "unknown"
+    assert not any("listed on" in note for note in rep.notes)
+    assert any("refused" in note for note in rep.notes)
+
+
+def test_dnsbl_counts_only_zones_that_answered():
+    calls = {"n": 0}
+
+    def payload():
+        calls["n"] += 1
+        if calls["n"] == 1:
+            return {"Status": 0, "Answer": [{"data": "127.255.255.254", "type": 1}]}
+        return {"Status": 3}
+
+    rep = providers.dnsbl_lookup("8.8.8.8", FakeGet({"dns.google/resolve": payload}))
+    assert rep.verdict == "clean"
+    assert any("checked 3 DNS blocklists" in note for note in rep.notes)
+    assert any("refused by" in note for note in rep.notes)
 
 
 def test_merge_reputation_prefers_primary_but_respects_dnsbl():

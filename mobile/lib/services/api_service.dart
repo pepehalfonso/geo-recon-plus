@@ -42,9 +42,18 @@ class ApiService {
   void dispose() => _client.close(force: true);
 
   Future<LookupResult> lookup(String target, {String? abuseKey}) async {
-    final address = InternetAddress.tryParse(target.trim());
+    final trimmed = target.trim();
+    var address = InternetAddress.tryParse(trimmed);
+    String? resolvedFrom;
     if (address == null) {
-      throw const LookupException('Not a valid IP address');
+      if (!_looksLikeHost(trimmed)) {
+        throw const LookupException('Not a valid IP address or domain');
+      }
+      address = await resolveHost(trimmed);
+      if (address == null) {
+        throw LookupException('Could not resolve $trimmed');
+      }
+      resolvedFrom = trimmed;
     }
 
     final scope = scopeOf(address);
@@ -66,8 +75,47 @@ class ApiService {
       reputation: rep,
       hostname: hostname,
       provider: 'ipwho.is',
+      resolvedFrom: resolvedFrom,
       warnings: warnings,
     );
+  }
+
+  /// Resolves a hostname to an address, preferring IPv4 the way the CLI does.
+  Future<InternetAddress?> resolveHost(String host) async {
+    for (final (recordType, expected) in const [('A', 1), ('AAAA', 28)]) {
+      try {
+        final body = await _getJson(
+          Uri.parse(
+            'https://dns.google/resolve?name=${Uri.encodeQueryComponent(host)}&type=$recordType',
+          ),
+        );
+        if (body is! Map<String, dynamic> || body['Status'] != 0) continue;
+        for (final answer in body['Answer'] as List<dynamic>? ?? const <dynamic>[]) {
+          final record = answer as Map<String, dynamic>;
+          if ((record['type'] as num?)?.toInt() != expected) continue;
+          final parsed = InternetAddress.tryParse(record['data'] as String? ?? '');
+          if (parsed != null) return parsed;
+        }
+      } on LookupException {
+        continue;
+      } on SocketException {
+        continue;
+      } on TimeoutException {
+        continue;
+      }
+    }
+    return null;
+  }
+
+  static bool _looksLikeHost(String value) {
+    if (value.isEmpty || value.length > 253) return false;
+    final labels = value.split('.');
+    if (labels.length < 2 && value != 'localhost') return false;
+    for (final label in labels) {
+      if (label.isEmpty || label.length > 63) return false;
+      if (!RegExp(r'^[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?$').hasMatch(label)) return false;
+    }
+    return true;
   }
 
   Future<LookupResult> ownLookup({String? abuseKey}) async {

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import json
 import os
 import sys
@@ -45,10 +46,11 @@ def colors_enabled(stream: TextIO = sys.stdout) -> bool:
 
 def harden_stream(stream: TextIO) -> None:
     """Never let an exotic glyph crash the report on a legacy console."""
-    try:
-        stream.reconfigure(errors="replace")
-    except (AttributeError, ValueError, OSError):
-        pass
+    reconfigure = getattr(stream, "reconfigure", None)
+    if reconfigure is None:  # captured streams in tests do not implement it
+        return
+    with contextlib.suppress(ValueError, OSError, TypeError):
+        reconfigure(errors="replace")
 
 
 def encodable(text: str, stream: TextIO) -> bool:
@@ -80,6 +82,8 @@ def render_report(result: LookupResult, palette: Palette, stream: TextIO = sys.s
     lines.append("")
     header = palette(f"  {result.ip}  ", "bold", "blue")
     lines.append(header)
+    if result.target:
+        lines.append(palette(f"    resolved from {result.target}", "dim"))
     lines.append("")
 
     if result.is_private:
@@ -112,6 +116,9 @@ def render_report(result: LookupResult, palette: Palette, stream: TextIO = sys.s
         ("Domain", conn.domain or "unknown"),
         ("Reverse DNS", result.hostname or "none"),
     ]
+    link = map_url(result)
+    if link:
+        rows.append(("Map", link))
     lines.extend(_rows(rows, palette))
 
     lines.append("")
@@ -140,19 +147,35 @@ def render_json(result: LookupResult) -> str:
     return json.dumps(result.to_dict(), indent=2, ensure_ascii=True)
 
 
-def _coordinates(latitude, longitude) -> str:
+def map_url(result: LookupResult) -> str | None:
+    """OpenStreetMap permalink for the geolocated coordinates, if any."""
+    latitude = result.geo.latitude
+    longitude = result.geo.longitude
+    if latitude is None or longitude is None:
+        return None
+    return (
+        "https://www.openstreetmap.org/"
+        f"?mlat={latitude:.6f}&mlon={longitude:.6f}#map=12/{latitude:.6f}/{longitude:.6f}"
+    )
+
+
+def render_separator(index: int, total: int) -> str:
+    return "\n" + "=" * 60 + f"\n[{index}/{total}]\n"
+
+
+def _coordinates(latitude: float | None, longitude: float | None) -> str:
     if latitude is None or longitude is None:
         return "unknown"
     return f"{latitude:.4f}, {longitude:.4f}"
 
 
-def _score(score) -> str:
+def _score(score: int | None) -> str:
     if score is None:
         return "n/a"
     return f"{score}/100"
 
 
-def _rows(rows, palette: Palette) -> list[str]:
+def _rows(rows: list[tuple[str, str]], palette: Palette) -> list[str]:
     width = max(len(name) for name, _ in rows)
     return [f"    {palette(name.ljust(width), 'dim')}  {value}" for name, value in rows]
 

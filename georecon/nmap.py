@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import shutil
 import subprocess
-from typing import Optional, Sequence
+from collections.abc import Sequence
 
 from georecon.errors import GeoReconError
 
@@ -19,7 +19,7 @@ def nmap_available() -> bool:
     return shutil.which("nmap") is not None
 
 
-def run_nmap(ip: str, extra_args: Optional[Sequence[str]] = None) -> int:
+def run_nmap(ip: str, extra_args: Sequence[str] | None = None) -> int:
     """Run nmap against *ip* and stream its output to the terminal."""
     if not nmap_available():
         raise NmapMissing(
@@ -27,7 +27,7 @@ def run_nmap(ip: str, extra_args: Optional[Sequence[str]] = None) -> int:
             "Install it yourself, e.g. 'sudo apt install nmap' or "
             "'choco install nmap', then retry."
         )
-    args = list(DEFAULT_ARGS if not extra_args else extra_args)
+    args = list(extra_args if extra_args else DEFAULT_ARGS)
     command = ["nmap", *args, ip]
     try:
         completed = subprocess.run(command, check=False)

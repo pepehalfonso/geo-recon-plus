@@ -104,6 +104,7 @@ class LookupResult {
     Reputation? reputation,
     this.isPrivate = false,
     this.hostname,
+    this.resolvedFrom,
     this.provider = 'ipwho.is',
     List<String>? warnings,
   })  : geo = geo ?? GeoInfo(),
@@ -118,6 +119,7 @@ class LookupResult {
   final Reputation reputation;
   final bool isPrivate;
   final String? hostname;
+  final String? resolvedFrom;
   final String provider;
   final List<String> warnings;
 
@@ -151,6 +153,7 @@ class LookupResult {
         },
         'is_private': isPrivate,
         'hostname': hostname,
+        'resolved_from': resolvedFrom,
         'provider': provider,
         'warnings': warnings,
       };

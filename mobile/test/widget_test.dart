@@ -17,4 +17,16 @@ void main() {
     expect(find.text('Look up'), findsOneWidget);
     expect(find.text('My IP'), findsOneWidget);
   });
+
+  testWidgets('home screen follows the device language', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+
+    await tester.pumpWidget(const GeoReconApp(locale: Locale('es')));
+    await tester.pump();
+
+    expect(find.text('Consultar'), findsOneWidget);
+    expect(find.text('Mi IP'), findsOneWidget);
+    expect(find.text('IP geolocation & reputation'), findsNothing);
+    expect(find.text('Geolocalización y reputación de IP'), findsOneWidget);
+  });
 }
