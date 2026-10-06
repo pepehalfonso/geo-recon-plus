@@ -161,7 +161,7 @@ abstract class AppLocalizations {
   /// No description provided for @sources.
   ///
   /// In en, this message translates to:
-  /// **'Data: ipwho.is, ipify, Google DNS, Spamhaus / SpamCop / Barracudacentral.'**
+  /// **'Data: ipwho.is, ipify, Google DNS, Spamhaus / SpamCop / PSBL / Barracudacentral.'**
   String get sources;
 
   /// No description provided for @settingsTitle.

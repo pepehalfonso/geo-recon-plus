@@ -21,6 +21,7 @@ class ApiService {
   static const _dnsblZones = [
     'zen.spamhaus.org',
     'bl.spamcop.net',
+    'psbl.surbl.org',
     'b.barracudacentral.org',
   ];
 

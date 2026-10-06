@@ -9,7 +9,7 @@
   "recent": "Recent",
   "clear": "Clear",
   "refresh": "Refresh",
-  "sources": "Data: ipwho.is, ipify, Google DNS, Spamhaus / SpamCop / Barracudacentral.",
+  "sources": "Data: ipwho.is, ipify, Google DNS, Spamhaus / SpamCop / PSBL / Barracudacentral.",
   "settingsTitle": "AbuseIPDB API key",
   "settingsHelp": "Optional. Without it the app uses free DNS blocklists only. Get one at abuseipdb.com.",
   "apiKeyLabel": "API key",

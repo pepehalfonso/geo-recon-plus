@@ -9,7 +9,7 @@
   "recent": "Recientes",
   "clear": "Borrar",
   "refresh": "Actualizar",
-  "sources": "Datos: ipwho.is, ipify, Google DNS, Spamhaus / SpamCop / Barracudacentral.",
+  "sources": "Datos: ipwho.is, ipify, Google DNS, Spamhaus / SpamCop / PSBL / Barracudacentral.",
   "settingsTitle": "Clave de AbuseIPDB",
   "settingsHelp": "Opcional. Sin ella solo se usan listas DNS gratuitas. Consíguela en abuseipdb.com.",
   "apiKeyLabel": "Clave API",

@@ -42,7 +42,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get sources =>
-      'Datos: ipwho.is, ipify, Google DNS, Spamhaus / SpamCop / Barracudacentral.';
+      'Datos: ipwho.is, ipify, Google DNS, Spamhaus / SpamCop / PSBL / Barracudacentral.';
 
   @override
   String get settingsTitle => 'Clave de AbuseIPDB';

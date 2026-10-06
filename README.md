@@ -3,13 +3,16 @@
 Reescritura moderna de [geo-recon](https://github.com/radioactivetobi/geo-recon): geolocalización
 y reputación de IPs desde la terminal y desde el móvil.
 
+> Guía completa de arquitectura, compilación y publicación: [docs/COMO-SE-HACE.md](docs/COMO-SE-HACE.md)
+
 ```
 geo-recon-plus/
 ├── georecon/          # paquete Python (CLI)
 ├── tests/             # 84 tests pytest, sin red
 ├── mobile/            # app Flutter (APK Android)
 │   └── build/app/outputs/flutter-apk/   # un APK por arquitectura
-├── tools/             # generador del icono de launcher
+├── tools/             # generador de icono y capturas
+├── docs/              # guía de desarrollo + capturas
 └── pyproject.toml
 ```
 
@@ -141,6 +144,23 @@ Funciones:
 * Configuración de API key de AbuseIPDB desde la app (se guarda en `SharedPreferences`).
 * Copiar la IP o el informe completo en JSON al portapapeles.
 * Icono de launcher adaptativo propio (`tools/generate_icon.py`).
+
+## Capturas
+
+CLI (`docs/screenshots/cli.png`, generada por `tools/render_cli_screenshot.py`):
+
+![GeoRecon+ en la terminal](docs/screenshots/cli.png)
+
+| Inicio | Escribiendo |
+| ------ | ----------- |
+| ![Pantalla de inicio con historial](docs/screenshots/home.png) | ![Búsqueda de 8.8.8.8 con teclado](docs/screenshots/typing.png) |
+
+| Resultado | Configuración |
+| --------- | ------------- |
+| ![Resultado CLEAN con 4 blocklists](docs/screenshots/result.png) | ![Diálogo de API key de AbuseIPDB](docs/screenshots/settings.png) |
+
+Las capturas de móvil salen del emulador Android (`adb exec-out screencap -p`) a
+1080×2400 y se reducen a 540 px de ancho con Pillow para no inflar el repo.
 
 ## Tests y calidad
 
