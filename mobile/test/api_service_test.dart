@@ -39,7 +39,7 @@ void main() {
     final result = await api.lookup('one.one.one.one');
 
     expect(result.resolvedFrom, 'one.one.one.one');
-    expect(result.ip, '1.0.0.1');
+    expect(['1.1.1.1', '1.0.0.1'], contains(result.ip));
     expect(result.isPrivate, isFalse);
     expect(result.geo.country, isNotNull);
   }, timeout: const Timeout(Duration(seconds: 60)));
